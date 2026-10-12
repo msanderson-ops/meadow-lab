@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meadow Lab: Grass, Rabbits and Foxes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9F1E1; --panel:#F8FBF3; --ink:#1D3326; --muted:#53695A; --line:#CBDAC1; --track:#D7E3CE;
+  --grass:#3F9A3A; --rabbit:#4A6FD0; --fox:#E0661A; --accent:#2B7A37; --btn-ink:#FFFFFF; --soft:#EEF5E7;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1914; --panel:#172419; --ink:#E5F0E0; --muted:#9BB3A1; --line:#2B4031; --track:#26382C;
+    --grass:#68C05C; --rabbit:#8EA8F2; --fox:#F28B3E; --accent:#5CBA63; --btn-ink:#0C1810; --soft:#1C2C21;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1914; --panel:#172419; --ink:#E5F0E0; --muted:#9BB3A1; --line:#2B4031; --track:#26382C;
+  --grass:#68C05C; --rabbit:#8EA8F2; --fox:#F28B3E; --accent:#5CBA63; --btn-ink:#0C1810; --soft:#1C2C21;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Nunito","Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.5}
+h1,h2,h3,.display{font-family:"Fredoka","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;font-weight:600;margin:0;letter-spacing:.005em}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 16px 48px}
+header.top{margin-bottom:18px}
+header.top h1{font-size:clamp(1.9rem,4.5vw,2.8rem);line-height:1.1}
+header.top p{margin:8px 0 0;max-width:62ch;color:var(--muted)}
+
+.lab{display:grid;gap:16px;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);
+  grid-template-areas:"stage controls" "graph controls" "notes notes";align-items:start}
+.stage{grid-area:stage}.controls{grid-area:controls}.graph{grid-area:graph}.notes{grid-area:notes}
+@media (max-width:860px){
+  .lab{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "controls" "graph" "notes"}
+}
+
+.panel{background:var(--panel);border:2px solid var(--line)}
+.stage{border-radius:26px;padding:12px}
+.controls{border-radius:20px;padding:18px}
+.graph{border-radius:20px;padding:14px 14px 10px}
+.notes{border-radius:20px;padding:16px;display:grid;gap:18px;grid-template-columns:1fr 1fr}
+@media (max-width:860px){.notes{grid-template-columns:1fr}}
+
+.counts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{display:flex;align-items:baseline;gap:8px;padding:6px 14px;border-radius:999px;background:var(--soft);border:2px solid var(--line);font-weight:700}
+.chip .emo{font-size:1.15rem}
+.chip .num{font-family:"Fredoka","Trebuchet MS",sans-serif;font-size:1.25rem;min-width:2ch;text-align:right}
+.chip.g{border-color:var(--grass)}.chip.r{border-color:var(--rabbit)}.chip.f{border-color:var(--fox)}
+.chip.day{margin-left:auto;border-color:var(--line)}
+.chip .lbl{color:var(--muted);font-weight:600;font-size:.9rem}
+
+.canvaswrap{border-radius:18px;overflow:hidden;background:#CBB68A;line-height:0}
+#meadow{width:100%;aspect-ratio:48/28;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 4px 2px;font-size:.88rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.dot.eat{background:#FF7A2F}.dot.starve{background:#8C8C8C}.dot.sick{background:#7DBF4A}
+
+.controls h2{font-size:1.4rem;margin-bottom:4px}
+.controls .sub{margin:0 0 14px;color:var(--muted);font-size:.95rem}
+.slider{--c:var(--grass);--pct:50%;margin-bottom:14px}
+.slider.rabbit{--c:var(--rabbit)}.slider.fox{--c:var(--fox)}
+.slider .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.slider label{font-family:"Fredoka","Trebuchet MS",sans-serif;font-weight:600;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.slider label .emo{font-size:1.5rem}
+.slider output{font-family:"Fredoka","Trebuchet MS",sans-serif;font-size:1.15rem;font-weight:600;color:var(--c);background:var(--soft);border-radius:999px;padding:1px 12px;min-width:4.4ch;text-align:center}
+.slider .hint{font-size:.85rem;color:var(--muted);margin:0 0 2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:36px;background:transparent;margin:0;cursor:pointer;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:999px;background:linear-gradient(to right,var(--c) var(--pct),var(--track) var(--pct))}
+input[type=range]::-moz-range-track{height:14px;border-radius:999px;background:var(--track)}
+input[type=range]::-moz-range-progress{height:14px;border-radius:999px;background:var(--c)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;margin-top:-9px;border-radius:50%;background:var(--panel);border:6px solid var(--c)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--panel);border:6px solid var(--c)}
+input[type=range]:disabled{opacity:.45;cursor:not-allowed}
+input[type=range]:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:999px}
+
+.actions{display:flex;gap:10px;margin:6px 0 6px}
+.btn{font-family:"Fredoka","Trebuchet MS",sans-serif;font-weight:600;font-size:1.15rem;border-radius:16px;padding:12px 20px;cursor:pointer;border:2px solid transparent;color:var(--ink);background:transparent;line-height:1.2}
+.btn.primary{background:var(--accent);color:var(--btn-ink);flex:1}
+.btn.ghost{border-color:var(--line);background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.pill:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.predict{font-size:.92rem;color:var(--muted);margin:8px 2px 16px}
+
+.group{border-top:2px solid var(--line);padding-top:14px;margin-top:6px}
+.group h3{font-size:1.05rem;margin-bottom:8px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{font-family:"Nunito",sans-serif;font-weight:700;font-size:.92rem;border-radius:999px;padding:7px 14px;border:2px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+.pill:hover:not(:disabled){border-color:var(--ink)}
+.pill:disabled{opacity:.45;cursor:not-allowed}
+.speed{display:inline-flex;border:2px solid var(--line);border-radius:999px;overflow:hidden;background:var(--soft)}
+.speed button{font-family:inherit;font-weight:700;font-size:.92rem;border:0;background:transparent;color:var(--ink);padding:7px 16px;cursor:pointer}
+.speed button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.speed button:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+
+.graph h2,.notes h2{font-size:1.2rem;margin-bottom:6px}
+.glegend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.9rem;color:var(--muted);margin-bottom:4px}
+.glegend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:22px;height:5px;border-radius:3px;display:inline-block}
+#graph{width:100%;height:230px;display:block}
+
+ol.feed,ol.runs{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:340px;overflow:auto}
+ol.feed li,ol.runs li{padding:8px 12px;border-radius:12px;background:var(--soft);border-left:6px solid var(--line);font-size:.97rem}
+ol.feed li .d{font-family:"Fredoka","Trebuchet MS",sans-serif;font-weight:600;color:var(--muted);margin-right:6px}
+ol.feed li.bad{border-left-color:var(--fox)}
+ol.feed li.good{border-left-color:var(--grass)}
+ol.feed li.info{border-left-color:var(--rabbit)}
+ol.runs li strong{font-family:"Fredoka","Trebuchet MS",sans-serif;font-weight:600}
+ol.runs li .meta{display:block;color:var(--muted);font-size:.88rem}
+.empty{color:var(--muted);font-size:.95rem;margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Meadow Lab</h1>
+    <p>Choose how much grass, how many rabbits and how many foxes to start with. Press Simulate and watch what happens when they eat each other.</p>
+  </header>
+
+  <main class="lab">
+    <section class="stage panel" aria-label="The meadow">
+      <div class="counts" id="counts">
+        <div class="chip g"><span class="emo" aria-hidden="true">🌱</span><span class="lbl">Grass</span><span class="num" id="cGrass">0%</span></div>
+        <div class="chip r"><span class="emo" aria-hidden="true">🐇</span><span class="lbl">Rabbits</span><span class="num" id="cRabbit">0</span></div>
+        <div class="chip f"><span class="emo" aria-hidden="true">🦊</span><span class="lbl">Foxes</span><span class="num" id="cFox">0</span></div>
+        <div class="chip day"><span class="lbl">Day</span><span class="num" id="cDay">0</span></div>
+      </div>
+      <div class="canvaswrap"><canvas id="meadow" role="img" aria-label="A meadow with grass, rabbits and foxes moving around"></canvas></div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="dot eat"></i>Eaten by a fox</span>
+        <span><i class="dot starve"></i>Starved</span>
+        <span><i class="dot sick"></i>Got sick</span>
+        <span>Brown ground means the grass was eaten</span>
+      </div>
+    </section>
+
+    <section class="controls panel" aria-label="Controls">
+      <h2>Starting amounts</h2>
+      <p class="sub" id="lockNote">Slide to add more of each. The meadow updates as you slide.</p>
+
+      <div class="slider grass" id="sGrassBox">
+        <div class="row"><label for="sGrass"><span class="emo" aria-hidden="true">🌱</span>Grass</label><output id="oGrass" for="sGrass">70%</output></div>
+        <input type="range" id="sGrass" min="0" max="100" step="5" value="70">
+      </div>
+      <div class="slider rabbit" id="sRabbitBox">
+        <div class="row"><label for="sRabbit"><span class="emo" aria-hidden="true">🐇</span>Rabbits</label><output id="oRabbit" for="sRabbit">20</output></div>
+        <input type="range" id="sRabbit" min="0" max="100" step="1" value="20">
+      </div>
+      <div class="slider fox" id="sFoxBox">
+        <div class="row"><label for="sFox"><span class="emo" aria-hidden="true">🦊</span>Foxes</label><output id="oFox" for="sFox">4</output></div>
+        <input type="range" id="sFox" min="0" max="30" step="1" value="4">
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnGo" type="button">Simulate</button>
+        <button class="btn ghost" id="btnReset" type="button">Start over</button>
+      </div>
+      <p class="predict">Before you press Simulate, predict it: who will run out of food first?</p>
+
+      <div class="group">
+        <h3>Speed</h3>
+        <div class="speed" role="group" aria-label="Simulation speed">
+          <button type="button" data-speed="1" aria-pressed="false">Slow</button>
+          <button type="button" data-speed="2" aria-pressed="true">Normal</button>
+          <button type="button" data-speed="5" aria-pressed="false">Fast</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Make something happen (while it runs)</h3>
+        <div class="pills">
+          <button class="pill ev" type="button" data-ev="drought" disabled>🌵 Drought</button>
+          <button class="pill ev" type="button" data-ev="rabbitSick" disabled>🤒 Rabbit sickness</button>
+          <button class="pill ev" type="button" data-ev="foxSick" disabled>🤒 Fox sickness</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Try a challenge</h3>
+        <div class="pills" id="challenges">
+          <button class="pill" type="button" data-g="70" data-r="20" data-f="4">A good first try</button>
+          <button class="pill" type="button" data-g="70" data-r="20" data-f="0">What if there are no foxes?</button>
+          <button class="pill" type="button" data-g="40" data-r="70" data-f="3">Too many rabbits</button>
+          <button class="pill" type="button" data-g="60" data-r="15" data-f="22">Too many foxes</button>
+          <button class="pill" type="button" data-g="10" data-r="25" data-f="4">Almost no grass</button>
+          <button class="pill" type="button" data-g="0" data-r="20" data-f="4">No grass at all</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="graph panel" aria-label="Population graph">
+      <h2>How the numbers change</h2>
+      <div class="glegend">
+        <span><i class="sw" style="background:var(--grass)"></i>Grass (right scale, percent)</span>
+        <span><i class="sw" style="background:var(--rabbit)"></i>Rabbits (left scale)</span>
+        <span><i class="sw" style="background:var(--fox)"></i>Foxes (left scale)</span>
+      </div>
+      <canvas id="graph" role="img" aria-label="Line graph of grass, rabbit and fox amounts over time"></canvas>
+    </section>
+
+    <section class="notes panel" aria-label="What happened">
+      <div>
+        <h2>What's happening</h2>
+        <ol class="feed" id="feed" aria-live="polite"></ol>
+      </div>
+      <div>
+        <h2>Your runs</h2>
+        <ol class="runs" id="runs"></ol>
+        <p class="empty" id="runsEmpty">Finish a run and it shows up here, so you can compare different starting amounts.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/*SIM_START*/
+const COLS = 48, ROWS = 28, N = COLS * ROWS, TPS = 30;
+const MAX_DAYS = 300;
+
+const P = {
+  grassGrow: 0.0006, sprout: 0.006, sproutNeed: 0.4, stub: 0.15,
+  rabbit: { speed: 0.09, flee: 0.15, fear: 3, meta: 0.08, bite: 0.1, gain: 10,
+            birthE: 40, birthCost: 15, cool: 45, startE: 50, sight: 5, cap: 300 },
+  fox:    { speed: 0.07, chase: 0.16, meta: 0.11, gain: 35, birthE: 85, birthCost: 45,
+            cool: 600, startE: 60, sight: 7, digest: 120, catchR: 0.8, catchP: 0.5, cap: 40 }
+};
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+const LAYOUT = (function(){
+  const rnd = mulberry32(20240607);
+  let f = new Float32Array(N);
+  for (let i = 0; i < N; i++) f[i] = rnd();
+  for (let pass = 0; pass < 6; pass++){
+    const g = new Float32Array(N);
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++){
+      let s = 0, c = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= COLS || yy >= ROWS) continue;
+        s += f[yy * COLS + xx]; c++;
+      }
+      g[y * COLS + x] = s / c;
+    }
+    f = g;
+  }
+  const idx = Array.from({length: N}, (_, i) => i).sort((a, b) => f[a] - f[b]);
+  const rank = new Float32Array(N);
+  idx.forEach((ci, k) => { rank[ci] = k / N; });
+  const tex = new Int8Array(N);
+  for (let i = 0; i < N; i++) tex[i] = Math.floor(rnd() * 5) - 2;
+  const rp = [], fp = [];
+  for (let i = 0; i < 100; i++) rp.push({x: 1 + rnd() * (COLS - 2), y: 1 + rnd() * (ROWS - 2), th: rnd() * 6.283});
+  for (let i = 0; i < 30; i++) fp.push({x: 1 + rnd() * (COLS - 2), y: 1 + rnd() * (ROWS - 2), th: rnd() * 6.283});
+  return {rank, tex, rp, fp};
+})();
+
+function mkAgent(x, y, e, th){
+  return {x, y, e, th, cd: Math.random() * 100, tx: -1, ty: -1, look: Math.random() * 10, dig: 0, prey: null, dead: null};
+}
+function move(a, sp){
+  a.x += Math.cos(a.th) * sp; a.y += Math.sin(a.th) * sp;
+  if (a.x < 0.3){a.x = 0.3; a.th = Math.PI - a.th}
+  else if (a.x > COLS - 0.3){a.x = COLS - 0.3; a.th = Math.PI - a.th}
+  if (a.y < 0.3){a.y = 0.3; a.th = -a.th}
+  else if (a.y > ROWS - 0.3){a.y = ROWS - 0.3; a.th = -a.th}
+}
+
+class Sim {
+  constructor(cfg){
+    this.cfg = {grass: cfg.grass, rabbits: cfg.rabbits, foxes: cfg.foxes};
+    this.tick = 0;
+    this.grass = new Float32Array(N);
+    for (let i = 0; i < N; i++) this.grass[i] = LAYOUT.rank[i] < cfg.grass / 100 ? 1 : 0;
+    this.rabbits = []; this.foxes = [];
+    for (let i = 0; i < cfg.rabbits; i++){const p = LAYOUT.rp[i]; this.rabbits.push(mkAgent(p.x, p.y, P.rabbit.startE, p.th));}
+    for (let i = 0; i < cfg.foxes; i++){const p = LAYOUT.fp[i]; this.foxes.push(mkAgent(p.x, p.y, P.fox.startE, p.th));}
+    this.stats = {born: 0, eaten: 0, starved: 0, fBorn: 0, fStarved: 0, peakR: cfg.rabbits, peakF: cfg.foxes, minGrass: this.grassPct()};
+    this.rEatenRecent = 0; this.rStarvedRecent = 0;
+    this.flags = {};
+    this.events = [];
+    this.effects = [];
+    this.hist = {t: [], g: [], r: [], f: []};
+    this.record();
+  }
+  grassPct(){ let s = 0; for (let i = 0; i < N; i++) s += this.grass[i]; return s / N * 100; }
+  record(){
+    const h = this.hist;
+    h.t.push(this.tick / TPS); h.g.push(this.grassPct()); h.r.push(this.rabbits.length); h.f.push(this.foxes.length);
+  }
+  say(msg, kind){ this.events.push({day: Math.floor(this.tick / TPS), msg, kind: kind || 'info'}); }
+
+  step(){
+    this.tick++;
+    const g = this.grass;
+    for (let i = 0; i < N; i++){
+      const v = g[i];
+      if (v > 0){ if (v < 1) g[i] = v + P.grassGrow > 1 ? 1 : v + P.grassGrow; }
+      else if (Math.random() < P.sprout){
+        const x = i % COLS, y = (i / COLS) | 0;
+        if ((x > 0 && g[i - 1] > P.sproutNeed) || (x < COLS - 1 && g[i + 1] > P.sproutNeed) ||
+            (y > 0 && g[i - COLS] > P.sproutNeed) || (y < ROWS - 1 && g[i + COLS] > P.sproutNeed)) g[i] = 0.05;
+      }
+    }
+    this.rEatenRecent *= 0.99; this.rStarvedRecent *= 0.99;
+    const RB = P.rabbit, FX = P.fox, S = RB.sight;
+    const rabbits = this.rabbits, foxes = this.foxes, stats = this.stats;
+    const newR = [], newF = [];
+
+    for (const r of rabbits){
+      if (r.dead) continue;
+      r.e -= RB.meta; r.cd--;
+      let near = null, nd = RB.fear * RB.fear;
+      for (const f of foxes){
+        const dx = f.x - r.x, dy = f.y - r.y, d = dx * dx + dy * dy;
+        if (d < nd){nd = d; near = f;}
+      }
+      if (near){
+        r.th = Math.atan2(r.y - near.y, r.x - near.x) + (Math.random() - 0.5) * 0.8;
+        move(r, RB.flee); r.tx = -1;
+      } else {
+        const ci = (r.y | 0) * COLS + (r.x | 0);
+        if (g[ci] > P.stub + 0.03){
+          const take = Math.min(RB.bite, g[ci] - P.stub);
+          g[ci] -= take; r.e = Math.min(100, r.e + take * RB.gain);
+        } else {
+          if (--r.look <= 0){
+            r.look = 8 + (Math.random() * 8 | 0);
+            const cx = r.x | 0, cy = r.y | 0;
+            let best = -9, bx = -1, by = -1;
+            for (let dy = -S; dy <= S; dy++){
+              const yy = cy + dy; if (yy < 0 || yy >= ROWS) continue;
+              for (let dx = -S; dx <= S; dx++){
+                const xx = cx + dx; if (xx < 0 || xx >= COLS) continue;
+                const v = g[yy * COLS + xx];
+                if (v > 0.5){
+                  const sc = v - 0.12 * Math.hypot(dx, dy);
+                  if (sc > best){best = sc; bx = xx; by = yy;}
+                }
+              }
+            }
+            if (bx >= 0){r.tx = bx + 0.3 + Math.random() * 0.4; r.ty = by + 0.3 + Math.random() * 0.4;} else r.tx = -1;
+          }
+          if (r.tx >= 0){
+            const dx = r.tx - r.x, dy = r.ty - r.y, d = Math.hypot(dx, dy);
+            if (d < RB.speed){r.x = r.tx; r.y = r.ty; r.tx = -1;}
+            else {r.th = Math.atan2(dy, dx); move(r, RB.speed);}
+          } else {
+            r.th += (Math.random() - 0.5) * 0.7; move(r, RB.speed * 0.7);
+          }
+        }
+      }
+      if (r.e >= RB.birthE && r.cd <= 0 && rabbits.length + newR.length < RB.cap){
+        r.e -= RB.birthCost; r.cd = RB.cool;
+        const b = mkAgent(r.x, r.y, RB.birthCost, Math.random() * 6.283);
+        b.cd = RB.cool; newR.push(b); stats.born++;
+      }
+      if (r.e <= 0){
+        r.dead = 'starved'; stats.starved++; this.rStarvedRecent++;
+        this.effects.push({x: r.x, y: r.y, age: 0, type: 'starve'});
+      }
+    }
+
+    for (const f of foxes){
+      if (f.dead) continue;
+      f.e -= FX.meta; f.cd--;
+      if (f.dig > 0) f.dig--;
+      if (f.dig <= 0 && f.e < 90){
+        if (--f.look <= 0 || (f.prey && f.prey.dead)){
+          f.look = 5;
+          let best = FX.sight * FX.sight, p = null;
+          for (const r of rabbits){
+            if (r.dead) continue;
+            const dx = r.x - f.x, dy = r.y - f.y, d = dx * dx + dy * dy;
+            if (d < best){best = d; p = r;}
+          }
+          f.prey = p;
+        }
+      } else f.prey = null;
+      if (f.prey && !f.prey.dead){
+        const dx = f.prey.x - f.x, dy = f.prey.y - f.y, d = Math.hypot(dx, dy);
+        if (d < FX.catchR){
+          if (Math.random() < FX.catchP){
+            f.prey.dead = 'eaten'; stats.eaten++; this.rEatenRecent++;
+            this.effects.push({x: f.prey.x, y: f.prey.y, age: 0, type: 'eat'});
+            f.e = Math.min(100, f.e + FX.gain); f.dig = FX.digest; f.prey = null;
+          }
+        } else {f.th = Math.atan2(dy, dx); move(f, FX.chase);}
+      } else {
+        f.th += (Math.random() - 0.5) * 0.5; move(f, FX.speed);
+      }
+      if (f.e >= FX.birthE && f.cd <= 0 && foxes.length + newF.length < FX.cap){
+        f.e -= FX.birthCost; f.cd = FX.cool;
+        const b = mkAgent(f.x, f.y, FX.birthCost, Math.random() * 6.283);
+        b.cd = FX.cool; newF.push(b); stats.fBorn++;
+      }
+      if (f.e <= 0){f.dead = 'starved'; stats.fStarved++;}
+    }
+
+    this.rabbits = rabbits.filter(r => !r.dead).concat(newR);
+    this.foxes = foxes.filter(f => !f.dead).concat(newF);
+    for (const e of this.effects) e.age++;
+    if (this.effects.length) this.effects = this.effects.filter(e => e.age < 16);
+    if (this.effects.length > 120) this.effects.splice(0, this.effects.length - 120);
+
+    if (this.tick % 10 === 0){ this.record(); this.narrate(); }
+  }
+
+  narrate(){
+    const s = this.stats, fl = this.flags, cfg = this.cfg;
+    const R = this.rabbits.length, F = this.foxes.length, gp = this.grassPct();
+    if (R > 0) fl.everR = true;
+    if (F > 0) fl.everF = true;
+    s.peakR = Math.max(s.peakR, R); s.peakF = Math.max(s.peakF, F); s.minGrass = Math.min(s.minGrass, gp);
+    const starving = this.rStarvedRecent > this.rEatenRecent;
+
+    if (!fl.low && gp < 25 && R > 0 && this.tick > 60){
+      fl.low = true; this.say('🌿 The grass is running low. Hungry rabbits will have a hard time finding food.', 'bad');
+    } else if (fl.low && gp > 55){
+      fl.low = false; this.say('🌱 The grass is growing back!', 'good');
+    }
+    if (!fl.rBoom && R >= Math.max(30, cfg.rabbits * 2)){
+      fl.rBoom = true; this.say('🐇 Rabbit boom! Lots of grass means rabbits have lots of babies.', 'info');
+    }
+    if (!fl.fBoom && cfg.foxes > 0 && F >= Math.max(6, cfg.foxes * 2)){
+      fl.fBoom = true; this.say('🦊 Fox boom! Plenty of rabbits to eat means more foxes.', 'info');
+    }
+    if (!fl.rCrash && s.peakR >= 30 && R > 0 && R <= s.peakR * 0.4){
+      fl.rCrash = true;
+      this.say(starving ? '📉 The rabbit population is crashing. There is not enough grass left to feed them all.'
+                        : '📉 The rabbit population is dropping fast. Foxes are eating them faster than they are born.', 'bad');
+    }
+    if (fl.everR && R === 0 && !fl.rGone){
+      fl.rGone = true;
+      this.say(starving ? '💀 All the rabbits are gone. They ate the grass and then starved.'
+                        : '💀 All the rabbits are gone. The foxes ate every one.', 'bad');
+    }
+    if (fl.everF && F === 0 && !fl.fGone){
+      fl.fGone = true;
+      this.say(R === 0 ? '💀 The last fox is gone. With no rabbits to eat, the foxes starved.'
+                       : '💀 The last fox is gone. They could not catch enough rabbits.', 'bad');
+    }
+  }
+
+  drought(){
+    for (let i = 0; i < N; i++) if (Math.random() < 0.85) this.grass[i] = 0;
+    this.say('🌵 A drought! Most of the grass dried up.', 'bad');
+    this.flags.low = false;
+  }
+  sicken(list, label, frac){
+    let n = 0;
+    for (const a of list){
+      if (!a.dead && Math.random() < frac){
+        a.dead = 'sick'; n++;
+        this.effects.push({x: a.x, y: a.y, age: 0, type: 'sick'});
+      }
+    }
+    this.say('🤒 ' + label + ' sickness! ' + n + ' ' + label.toLowerCase() + (n === 1 ? ' got' : 's got') + ' sick and died.', 'bad');
+  }
+  rabbitSick(){ this.sicken(this.rabbits, 'Rabbit', 0.6); this.rabbits = this.rabbits.filter(r => !r.dead); }
+  foxSick(){ this.sicken(this.foxes, 'Fox', 0.6); this.foxes = this.foxes.filter(f => !f.dead); }
+}
+
+function verdict(sim){
+  const R = sim.rabbits.length, F = sim.foxes.length, s = sim.stats;
+  const starving = sim.rStarvedRecent > sim.rEatenRecent;
+  if (R === 0 && F === 0) return starving ? 'Rabbits ate the grass and starved, then the foxes starved too.' : 'The foxes ate every rabbit, then starved.';
+  if (R === 0) return starving ? 'The rabbits ran out of grass and died out.' : 'The foxes ate all the rabbits.';
+  if (F === 0 && sim.flags.everF) return 'The foxes died out. Rabbits and grass kept going.';
+  if (F === 0) return 'No foxes, so the rabbits only had grass to worry about.';
+  return 'Grass, rabbits and foxes were all still alive at the end.';
+}
+/*SIM_END*/
+
+/* ---------- Interface ---------- */
+const $ = id => document.getElementById(id);
+const mcv = $('meadow'), mctx = mcv.getContext('2d');
+const gcv = $('graph'), gctx = gcv.getContext('2d');
+const dpr = () => Math.min(window.devicePixelRatio || 1, 2.5);
+
+const app = { state: 'setup', sim: null, speed: 2, acc: 0, runs: [], runN: 0, feed: [], logged: false, histLen: 0 };
+
+const sl = {
+  grass: $('sGrass'), rabbit: $('sRabbit'), fox: $('sFox')
+};
+function readCfg(){ return { grass: +sl.grass.value, rabbits: +sl.rabbit.value, foxes: +sl.fox.value }; }
+function paintSliders(){
+  const set = (key, out, fmt) => {
+    const el = sl[key]; const pct = (el.value - el.min) / (el.max - el.min) * 100;
+    el.parentElement.style.setProperty('--pct', pct + '%');
+    $(out).textContent = fmt(+el.value);
+  };
+  set('grass', 'oGrass', v => v + '%');
+  set('rabbit', 'oRabbit', v => v);
+  set('fox', 'oFox', v => v);
+}
+
+/* grass palette */
+const PAL = (function(){
+  const soil = [203, 182, 138], lo = [190, 208, 112], hi = [44, 140, 56], out = [];
+  for (let i = 0; i < 64; i++){
+    const g = i / 63; let c;
+    if (g < 0.12){ const k = g / 0.12; c = soil.map(v => v - 8 + k * 8); }
+    else { const k = (g - 0.12) / 0.88; c = lo.map((v, j) => v + (hi[j] - v) * k); }
+    out.push('rgb(' + c.map(Math.round).join(',') + ')');
+  }
+  return out;
+})();
+
+let cs = 14, sprites = {};
+const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+function makeSprite(ch, px){
+  const d = dpr(), c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(px * d);
+  const x = c.getContext('2d');
+  x.font = Math.floor(px * d * 0.82) + 'px ' + EMOJI_FONT;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(ch, c.width / 2, c.height / 2 + px * d * 0.04);
+  return c;
+}
+function resizeMeadow(){
+  const d = dpr(), w = mcv.clientWidth; if (!w) return;
+  mcv.width = Math.round(w * d); mcv.height = Math.round(w * ROWS / COLS * d);
+  cs = w / COLS;
+  const rp = Math.max(cs * 1.5, 15), fp = Math.max(cs * 2.1, 20);
+  sprites = { r: makeSprite('🐇', rp), f: makeSprite('🦊', fp), rp, fp };
+  renderMeadow();
+}
+function renderMeadow(){
+  const sim = app.sim; if (!sim) return;
+  const d = dpr(); mctx.setTransform(d, 0, 0, d, 0, 0);
+  const g = sim.grass, tex = LAYOUT.tex;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++){
+    const i = y * COLS + x;
+    let k = Math.round(g[i] * 63) + tex[i]; k = k < 0 ? 0 : k > 63 ? 63 : k;
+    mctx.fillStyle = PAL[k];
+    mctx.fillRect(x * cs, y * cs, cs + 0.6, cs + 0.6);
+  }
+  const shadow = 'rgba(0,0,0,0.18)';
+  mctx.fillStyle = shadow;
+  for (const r of sim.rabbits){ mctx.beginPath(); mctx.ellipse(r.x * cs, r.y * cs + sprites.rp * 0.32, sprites.rp * 0.3, sprites.rp * 0.1, 0, 0, 6.283); mctx.fill(); }
+  for (const f of sim.foxes){ mctx.beginPath(); mctx.ellipse(f.x * cs, f.y * cs + sprites.fp * 0.34, sprites.fp * 0.34, sprites.fp * 0.11, 0, 0, 6.283); mctx.fill(); }
+  for (const r of sim.rabbits) mctx.drawImage(sprites.r, r.x * cs - sprites.rp / 2, r.y * cs - sprites.rp / 2, sprites.rp, sprites.rp);
+  for (const f of sim.foxes) mctx.drawImage(sprites.f, f.x * cs - sprites.fp / 2, f.y * cs - sprites.fp / 2, sprites.fp, sprites.fp);
+  for (const e of sim.effects){
+    const t = e.age / 16;
+    mctx.globalAlpha = 1 - t;
+    mctx.lineWidth = 3;
+    mctx.strokeStyle = e.type === 'eat' ? '#FF7A2F' : e.type === 'sick' ? '#7DBF4A' : '#8C8C8C';
+    mctx.beginPath(); mctx.arc(e.x * cs, e.y * cs, cs * (0.4 + t * 1.4), 0, 6.283); mctx.stroke();
+  }
+  mctx.globalAlpha = 1;
+  updateCounts();
+}
+function updateCounts(){
+  const sim = app.sim;
+  $('cGrass').textContent = Math.round(sim.grassPct()) + '%';
+  $('cRabbit').textContent = sim.rabbits.length;
+  $('cFox').textContent = sim.foxes.length;
+  $('cDay').textContent = Math.floor(sim.tick / TPS);
+}
+
+/* graph */
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function resizeGraph(){
+  const d = dpr(), w = gcv.clientWidth, h = gcv.clientHeight; if (!w) return;
+  gcv.width = Math.round(w * d); gcv.height = Math.round(h * d);
+  drawGraph();
+}
+function drawGraph(){
+  const d = dpr(), w = gcv.width / d, h = gcv.height / d; if (!w) return;
+  const ctx = gctx; ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h);
+  const ink = cssVar('--ink'), muted = cssVar('--muted'), line = cssVar('--line');
+  const cg = cssVar('--grass'), cr = cssVar('--rabbit'), cf = cssVar('--fox');
+  const L = 36, R = 42, T = 12, B = 26, pw = w - L - R, ph = h - T - B;
+  const H = app.sim.hist, n = H.t.length;
+  const lastDay = n ? H.t[n - 1] : 0;
+  const maxDay = Math.max(60, Math.ceil(lastDay / 30) * 30);
+  let peak = 10; for (let i = 0; i < n; i++) peak = Math.max(peak, H.r[i], H.f[i]);
+  const step = peak <= 20 ? 5 : peak <= 40 ? 10 : peak <= 100 ? 25 : 50;
+  const maxY = Math.ceil(peak / step) * step;
+  ctx.font = '12px Nunito, system-ui, sans-serif'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 1;
+  for (let v = 0; v <= maxY; v += step){
+    const y = T + ph - v / maxY * ph;
+    ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+    ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.fillText(v, L - 6, y);
+  }
+  ctx.fillStyle = cg; ctx.textAlign = 'left';
+  ctx.fillText('100%', L + pw + 6, T); ctx.fillText('0%', L + pw + 6, T + ph);
+  ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const dstep = maxDay <= 60 ? 10 : maxDay <= 150 ? 30 : 50;
+  for (let dday = 0; dday <= maxDay; dday += dstep) ctx.fillText(dday, L + dday / maxDay * pw, T + ph + 6);
+  ctx.textAlign = 'right'; ctx.fillText('Day', L + pw, T + ph + 6 + 0);
+  if (n < 2){
+    ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '15px Nunito, system-ui, sans-serif';
+    ctx.fillText('Press Simulate to start the graph', L + pw / 2, T + ph / 2);
+    return;
+  }
+  const X = i => L + H.t[i] / maxDay * pw;
+  ctx.beginPath(); ctx.moveTo(X(0), T + ph);
+  for (let i = 0; i < n; i++) ctx.lineTo(X(i), T + ph - H.g[i] / 100 * ph);
+  ctx.lineTo(X(n - 1), T + ph); ctx.closePath();
+  ctx.globalAlpha = 0.22; ctx.fillStyle = cg; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++){ const y = T + ph - H.g[i] / 100 * ph; i ? ctx.lineTo(X(i), y) : ctx.moveTo(X(i), y); }
+  ctx.strokeStyle = cg; ctx.lineWidth = 2; ctx.stroke();
+  const series = (arr, col) => {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++){ const y = T + ph - arr[i] / maxY * ph; i ? ctx.lineTo(X(i), y) : ctx.moveTo(X(i), y); }
+    ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.stroke();
+  };
+  series(H.r, cr); series(H.f, cf);
+}
+
+/* feed and run log */
+function renderFeed(){
+  const ol = $('feed'); ol.innerHTML = '';
+  if (!app.feed.length){
+    const li = document.createElement('li'); li.className = 'info';
+    li.textContent = 'Nothing has happened yet. Pick your starting amounts and press Simulate.';
+    ol.appendChild(li); return;
+  }
+  for (const e of app.feed.slice().reverse()){
+    const li = document.createElement('li'); li.className = e.kind;
+    const d = document.createElement('span'); d.className = 'd'; d.textContent = 'Day ' + e.day;
+    li.appendChild(d); li.appendChild(document.createTextNode(e.msg));
+    ol.appendChild(li);
+  }
+}
+function pushFeed(day, msg, kind){ app.feed.push({day, msg, kind}); if (app.feed.length > 60) app.feed.shift(); renderFeed(); }
+function renderRuns(){
+  const ol = $('runs'); ol.innerHTML = '';
+  $('runsEmpty').style.display = app.runs.length ? 'none' : '';
+  for (const r of app.runs.slice().reverse()){
+    const li = document.createElement('li');
+    const s = document.createElement('strong'); s.textContent = 'Run ' + r.n + ': ' + r.cfg.grass + '% grass, ' + r.cfg.rabbits + ' rabbits, ' + r.cfg.foxes + ' foxes';
+    const v = document.createElement('div'); v.textContent = r.verdict;
+    const m = document.createElement('span'); m.className = 'meta';
+    m.textContent = 'Lasted ' + r.days + ' days. Most rabbits: ' + r.peakR + '. Most foxes: ' + r.peakF + '. Least grass: ' + Math.round(r.minGrass) + '%.';
+    li.append(s, v, m); ol.appendChild(li);
+  }
+}
+
+/* state handling */
+function setLocked(locked){
+  for (const k in sl) sl[k].disabled = locked;
+  document.querySelectorAll('#challenges .pill').forEach(b => b.disabled = locked);
+  $('lockNote').textContent = locked ? 'Sliders are locked during a run. Press Start over to change the amounts.'
+                                     : 'Slide to add more of each. The meadow updates as you slide.';
+}
+function updateButtons(){
+  const go = $('btnGo');
+  go.textContent = { setup: 'Simulate', running: 'Pause', paused: 'Resume', done: 'Run again' }[app.state];
+  document.querySelectorAll('.ev').forEach(b => b.disabled = app.state !== 'running');
+  setLocked(app.state === 'running' || app.state === 'paused');
+}
+function newPreview(){
+  app.sim = new Sim(readCfg());
+  app.state = 'setup'; app.acc = 0; app.logged = false; app.histLen = 0;
+  app.feed = []; renderFeed(); updateButtons(); renderMeadow(); drawGraph();
+}
+function startRun(){
+  app.sim = new Sim(readCfg());
+  app.runN++; app.state = 'running'; app.acc = 0; app.logged = false; app.histLen = 0;
+  const c = app.sim.cfg;
+  app.feed = [];
+  pushFeed(0, 'Run ' + app.runN + ' started with ' + c.grass + '% grass, ' + c.rabbits + ' rabbits and ' + c.foxes + ' foxes.', 'info');
+  updateButtons(); renderMeadow(); drawGraph();
+}
+function logRun(){
+  if (app.logged) return; app.logged = true;
+  const s = app.sim, st = s.stats;
+  app.runs.push({ n: app.runN, cfg: s.cfg, days: Math.floor(s.tick / TPS), verdict: verdict(s),
+                  peakR: st.peakR, peakF: st.peakF, minGrass: st.minGrass });
+  renderRuns();
+}
+function finishRun(){
+  app.state = 'done';
+  const s = app.sim, day = Math.floor(s.tick / TPS);
+  pushFeed(day, '🏁 Run finished. ' + verdict(s), 'info');
+  logRun(); updateButtons();
+}
+$('btnGo').addEventListener('click', () => {
+  if (app.state === 'setup' || app.state === 'done') startRun();
+  else if (app.state === 'running'){ app.state = 'paused'; updateButtons(); }
+  else if (app.state === 'paused'){ app.state = 'running'; updateButtons(); }
+});
+$('btnReset').addEventListener('click', () => {
+  if ((app.state === 'running' || app.state === 'paused') && app.sim.tick >= 5 * TPS) logRun();
+  newPreview();
+});
+for (const k in sl) sl[k].addEventListener('input', () => { paintSliders(); newPreview(); });
+document.querySelectorAll('#challenges .pill').forEach(b => b.addEventListener('click', () => {
+  sl.grass.value = b.dataset.g; sl.rabbit.value = b.dataset.r; sl.fox.value = b.dataset.f;
+  paintSliders(); newPreview();
+}));
+document.querySelectorAll('.speed button').forEach(b => b.addEventListener('click', () => {
+  app.speed = +b.dataset.speed;
+  document.querySelectorAll('.speed button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+}));
+document.querySelectorAll('.ev').forEach(b => b.addEventListener('click', () => {
+  if (app.state !== 'running') return;
+  app.sim[b.dataset.ev]();
+  flushEvents(); renderMeadow(); drawGraph();
+}));
+function flushEvents(){
+  const s = app.sim;
+  if (s.events.length){ for (const e of s.events) pushFeed(e.day, e.msg, e.kind); s.events = []; }
+}
+
+/* main loop */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(100, now - last); last = now;
+  if (app.state === 'running'){
+    app.acc += dt / 1000 * TPS * app.speed;
+    let n = 0; const s = app.sim;
+    while (app.acc >= 1 && n < 24){
+      s.step(); app.acc--; n++;
+      if ((s.rabbits.length === 0 && s.foxes.length === 0) || s.tick >= MAX_DAYS * TPS) break;
+    }
+    if (app.acc > 3) app.acc = 3;
+    flushEvents();
+    renderMeadow();
+    if (s.hist.t.length !== app.histLen){ app.histLen = s.hist.t.length; drawGraph(); }
+    if ((s.rabbits.length === 0 && s.foxes.length === 0) || s.tick >= MAX_DAYS * TPS) finishRun();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* setup */
+if ('ResizeObserver' in window){
+  new ResizeObserver(() => { resizeMeadow(); resizeGraph(); }).observe(document.querySelector('.lab'));
+} else window.addEventListener('resize', () => { resizeMeadow(); resizeGraph(); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawGraph);
+paintSliders(); app.sim = new Sim(readCfg()); renderFeed(); renderRuns(); updateButtons();
+resizeMeadow(); resizeGraph();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
